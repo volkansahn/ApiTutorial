@@ -30,7 +30,26 @@ const register = async (req,res) => {
 } // register function
 
 const login = async (req,res) => {
-    
+  try{
+    const {email, password} = req.body;
+    const user = userModel.FindOne({email: email});
+
+    if(!user){
+      res.status(500).json({message: 'No user with this email'});
+    }
+    const comparePassword = bcrypt.compare(password, user.password);
+    if(!comparePassword){
+      res.status(500).json({message: 'Password is incorrect'});
+    }
+    const token = jwt.sign({id: user.id}, process.env.SECRETKEY);
+    res.status(200).json({
+      status: 'OK',
+      user,
+      token
+    });
+  }catch(err){
+    res.status(500).json({message: err.message});
+  }
 } // login function
 
 module.exports = { register, login }; // export the functions
