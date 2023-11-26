@@ -1,5 +1,6 @@
 const userModel = require('../models/user.model.js');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const register = async (req,res) => {
     const { username, email, password } = req.body;
@@ -15,31 +16,33 @@ const register = async (req,res) => {
       return res.status(500).json({message: 'Password must be at least 6 characters'
       });
     }
-    const hashedPassword = bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password, 10);
     const user = new userModel({ username, email, password: hashedPassword});
-    await user.save((err, result) => {
-      if(err){
-        return res.status(500).json({ message: 'Error saving user'});
-      }
-      res.status(201).json({
-        status:'OK',
-        message: user
-      });
-    });
-      
+    await user.save().then((user) => {
+        const token = jwt.sign({id: user.id}, process.env.SECRETKEY);
+        res.status(201).json({
+            status:'OK',
+            message: user,
+            token:token
+          });
+    }).catch((err) => {
+        return res.status(500).json({ 
+            message: 'Error saving user',
+            error: err.message});
+    });      
 } // register function
 
 const login = async (req,res) => {
   try{
-    const {email, password} = req.body;
-    const user = userModel.FindOne({email: email});
+    const {username, password} = req.body;
+    const user = await userModel.findOne({username: username});
 
     if(!user){
-      res.status(500).json({message: 'No user with this email'});
+      return res.status(500).json({message: 'No user with this email'});
     }
-    const comparePassword = bcrypt.compare(password, user.password);
+    const comparePassword = await bcrypt.compare(password, user.password);
     if(!comparePassword){
-      res.status(500).json({message: 'Password is incorrect'});
+      return res.status(500).json({message: 'Password is incorrect'});
     }
     const token = jwt.sign({id: user.id}, process.env.SECRETKEY);
     res.status(200).json({
