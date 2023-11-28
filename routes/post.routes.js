@@ -8,3 +8,5 @@ router.get('/posts', getPosts);
 router.get('/posts/:id', getPostDetail);
 router.patch('/posts/:id', updatePost);
 router.delete('/post/:id', deletePost);
+
+module.exports = router;
